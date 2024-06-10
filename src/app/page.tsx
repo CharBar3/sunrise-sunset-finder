@@ -148,7 +148,7 @@ export default function Home() {
         <p className="leading-7 [&:not(:first-child)]:mt-6">
           Lng {position?.lng}
         </p>
-        {sunData ?? (
+        {sunData && (
           <ul>
             <ul>
               <li>Date: {sunData.date}</li>

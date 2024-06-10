@@ -29,10 +29,12 @@ export default function Home() {
             const {
               coords: { latitude, longitude },
             } = e;
-            const currentLocation = new LatLng(latitude, longitude);
-            setPosition(currentLocation);
-            getSunsetSunrise(currentLocation);
-            map.flyTo(new LatLng(latitude, longitude), zoom);
+            if (window) {
+              const currentLocation = new LatLng(latitude, longitude);
+              setPosition(currentLocation);
+              getSunsetSunrise(currentLocation);
+              map.flyTo(new LatLng(latitude, longitude), zoom);
+            }
           },
           (e) => {
             console.log(e);

@@ -62,7 +62,7 @@ export default function Home() {
     );
   }
 
-  const [sunData, setSunData] = useState(null);
+  const [sunData, setSunData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
   const getSunsetSunrise = async (latLng: LatLng) => {
@@ -148,7 +148,7 @@ export default function Home() {
         <p className="leading-7 [&:not(:first-child)]:mt-6">
           Lng {position?.lng}
         </p>
-        {sunData ? (
+        {sunData ?? (
           <ul>
             <ul>
               <li>Date: {sunData.date}</li>
@@ -165,8 +165,6 @@ export default function Home() {
               <li>UTC Offset: {sunData.utc_offset}</li>
             </ul>
           </ul>
-        ) : (
-          <div></div>
         )}
       </div>
       {map ? <MapControls map={map} /> : null}

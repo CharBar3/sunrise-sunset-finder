@@ -1,32 +1,45 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
-import {
-  MapContainer,
-  Marker,
-  Popup,
-  TileLayer,
-  useMapEvents,
-} from "react-leaflet";
+import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
 
-import { Icon, LatLng, Map } from "leaflet";
-import { FC, useCallback, useEffect, useMemo, useState } from "react";
-import { LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Icon, LatLng, Map } from "leaflet";
+import { CircleHelp, LocateFixed } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useDebounce } from "react-use";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
+import { Skeleton } from "./ui/skeleton";
 
 const MapTime = () => {
   const [position, setPosition] = useState<null | LatLng>(null);
-  const center = new LatLng(51.505, -0.09);
-  const zoom = 13;
+
+  const [, cancel] = useDebounce(
+    () => {
+      getSunsetSunrise();
+    },
+    2000,
+    [position]
+  );
+
+  const updatePostion = (latLng: LatLng) => {
+    setLoading(true);
+    setPosition(latLng);
+  };
 
   function MapControls({ map }: { map: Map }) {
     const [mapPosition, setMapPosition] = useState(() => map.getCenter());
 
     const onClick = useCallback(() => {
-      if (!window) {
-        return;
-      }
-
+      setLoading(true);
+      setPosition(null);
       navigator.geolocation.getCurrentPosition(
         (e) => {
           const {
@@ -34,13 +47,13 @@ const MapTime = () => {
           } = e;
 
           const currentLocation = new LatLng(latitude, longitude);
-          setPosition(currentLocation);
-          getSunsetSunrise(currentLocation);
-          map.flyTo(new LatLng(latitude, longitude), zoom);
+          updatePostion(currentLocation);
+          map.flyTo(currentLocation, 13);
         },
         (e) => {
           console.log(e);
           alert("Location services not enabled");
+          setLoading(false);
         }
       );
     }, [map]);
@@ -57,31 +70,33 @@ const MapTime = () => {
     }, [map, onMove]);
 
     return (
-      <p>
-        latitude: {mapPosition.lat.toFixed(4)}, longitude:{" "}
-        {mapPosition.lng.toFixed(4)}{" "}
-        <Button onClick={onClick}>Find My Location</Button>
-      </p>
+      <div>
+        <Button size="icon" onClick={onClick}>
+          <LocateFixed />
+        </Button>
+      </div>
     );
   }
 
   const [sunData, setSunData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  const getSunsetSunrise = async (latLng: LatLng) => {
-    setLoading(true);
+  const getSunsetSunrise = async () => {
+    if (!position) {
+      return;
+    }
 
     try {
       const req = await fetch(
-        `https://api.sunrisesunset.io/json?lat=${latLng.lat}&lng=${latLng.lng}`
+        `https://api.sunrisesunset.io/json?lat=${position.lat}&lng=${position.lng}`
       );
       const data = await req.json();
       console.log(data);
       setSunData(data.results);
-      setLoading(false);
     } catch (error) {
-      setLoading(false);
       alert("Error getting sunrise/sunset data");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -92,38 +107,27 @@ const MapTime = () => {
       iconUrl:
         "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLW1hcC1waW4iPjxwYXRoIGQ9Ik0yMCAxMGMwIDYtOCAxMi04IDEycy04LTYtOC0xMmE4IDggMCAwIDEgMTYgMFoiLz48Y2lyY2xlIGN4PSIxMiIgY3k9IjEwIiByPSIzIi8+PC9zdmc+",
       iconSize: [38, 38],
+      // iconAnchor: [19, 43],
     });
 
     function MarkCoords() {
       const map = useMapEvents({
         click(e) {
-          setPosition(e.latlng);
-          getSunsetSunrise(e.latlng);
+          updatePostion(e.latlng);
         },
       });
 
       return position === null ? null : (
-        <Marker position={position} icon={customIcon}>
-          <Popup>
-            {position ? (
-              <div>
-                <p>Lat: {position.lat}</p>
-                <p>Lng: {position.lng}</p>
-              </div>
-            ) : (
-              ""
-            )}
-          </Popup>
-        </Marker>
+        <Marker position={position} icon={customIcon} />
       );
     }
 
     return (
       <MapContainer
         center={[39.8283, -98.5795]}
-        zoom={2}
+        zoom={4}
         ref={setMap}
-        className="relaitve min-h-[50vh]"
+        className="relative h-screen"
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -136,41 +140,68 @@ const MapTime = () => {
 
   return (
     <div>
-      <div>
-        <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl flex">
-          Sunset/Sunrise Finder{" "}
-          {loading && <LoaderCircle className="animate-spin" />}
-        </h1>
-        <p className="leading-7 [&:not(:first-child)]:mt-6">
-          Click on the map to get sunrise and sunset information at the selected
-          location
-        </p>
-        <p className="leading-7 [&:not(:first-child)]:mt-6">
-          Lat {position?.lat}
-        </p>
-        <p className="leading-7 [&:not(:first-child)]:mt-6">
-          Lng {position?.lng}
-        </p>
-        {sunData && (
-          <ul>
-            <ul>
-              <li>Date: {sunData.date}</li>
-              <li>Dawn: {sunData.dawn}</li>
-              <li>Day Length: {sunData.day_length}</li>
-              <li>Dusk: {sunData.dusk}</li>
-              <li>First Light: {sunData.first_light}</li>
-              <li>Golden Hour: {sunData.golden_hour}</li>
-              <li>Last Light: {sunData.last_light}</li>
-              <li>Solar Noon: {sunData.solar_noon}</li>
-              <li>Sunrise: {sunData.sunrise}</li>
-              <li>Sunset: {sunData.sunset}</li>
-              <li>Timezone: {sunData.timezone}</li>
-              <li>UTC Offset: {sunData.utc_offset}</li>
-            </ul>
-          </ul>
-        )}
+      <div className="p-4">
+        <div className="flex space-x-2">
+          <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl flex">
+            Sunset/Sunrise Finder
+          </h1>
+          <TooltipProvider>
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild className="cursor-default">
+                <Button variant="ghost" size="icon">
+                  <CircleHelp />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="leading-7">
+                  Click on the map to get sunrise and sunset information at the
+                  selected location
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          {map && <MapControls map={map} />}
+        </div>
+        <div className="space-y-2">
+          <div>
+            <Label>Lat</Label>
+            <Input className="mt-1" defaultValue={position?.lat} />
+          </div>
+          <div>
+            <Label className="mb-2">Lng</Label>
+            <Input defaultValue={position?.lng} />
+          </div>
+        </div>
+
+        <ul>
+          {/* <li>Date: {sunData.date}</li> */}
+          {/* <li>Dawn: {sunData.dawn}</li> */}
+          {/* <li>Day Length: {sunData.day_length}</li> */}
+          {/* <li>Dusk: {sunData.dusk}</li> */}
+          {/* <li>First Light: {sunData.first_light}</li> */}
+          {/* <li>Golden Hour: {sunData.golden_hour}</li> */}
+          {/* <li>Last Light: {sunData.last_light}</li> */}
+          {/* <li>Solar Noon: {sunData.solar_noon}</li> */}
+          <li>
+            <Label>Sunrise</Label>{" "}
+            {loading ? (
+              <Skeleton className="h-6 w-[250px]" />
+            ) : (
+              <p>{sunData ? sunData.sunrise : "TBD"}</p>
+            )}
+          </li>
+          <li>
+            <Label>Sunset</Label>{" "}
+            {loading ? (
+              <Skeleton className="h-6 w-[250px]" />
+            ) : (
+              <p>{sunData ? sunData.sunset : "TBD"}</p>
+            )}
+          </li>
+          {/* <li>Timezone: {sunData.timezone}</li> */}
+          {/* <li>UTC Offset: {sunData.utc_offset}</li> */}
+        </ul>
       </div>
-      {map ? <MapControls map={map} /> : null}
       {displayMap}
     </div>
   );

@@ -10,13 +10,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebounce } from "react-use";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { Skeleton } from "./ui/skeleton";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/tooltip";
-import { Skeleton } from "./ui/skeleton";
 
 const MapTime = () => {
   const [position, setPosition] = useState<null | LatLng>(null);
@@ -88,7 +88,8 @@ const MapTime = () => {
 
     try {
       const req = await fetch(
-        `https://api.sunrisesunset.io/json?lat=${position.lat}&lng=${position.lng}`
+        `https://api.sunrisesunset.io/json?lat=${position.lat}&lng=${position.lng}`,
+        { method: "GET", mode: "no-cors" }
       );
       const data = await req.json();
       console.log(data);
@@ -127,7 +128,7 @@ const MapTime = () => {
         center={[39.8283, -98.5795]}
         zoom={4}
         ref={setMap}
-        className="relative h-screen"
+        className="absolute top-0 left-0 right-0 bottom-0 h-screen z-0"
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -140,7 +141,7 @@ const MapTime = () => {
 
   return (
     <div>
-      <div className="p-4">
+      <div className="absolute z-[400] bg-background p-4 w-full">
         <div className="flex space-x-2">
           <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl flex">
             Sunset/Sunrise Finder
@@ -163,43 +164,46 @@ const MapTime = () => {
           {map && <MapControls map={map} />}
         </div>
         <div className="space-y-2">
-          <div>
-            <Label>Lat</Label>
+          <div className="flex items-center">
+            <Label className="w-8">Lat</Label>
             <Input className="mt-1" defaultValue={position?.lat} />
           </div>
-          <div>
-            <Label className="mb-2">Lng</Label>
+          <div className="flex items-center">
+            <Label className="w-8">Lng</Label>
             <Input defaultValue={position?.lng} />
           </div>
         </div>
 
-        <ul>
-          {/* <li>Date: {sunData.date}</li> */}
-          {/* <li>Dawn: {sunData.dawn}</li> */}
-          {/* <li>Day Length: {sunData.day_length}</li> */}
-          {/* <li>Dusk: {sunData.dusk}</li> */}
-          {/* <li>First Light: {sunData.first_light}</li> */}
-          {/* <li>Golden Hour: {sunData.golden_hour}</li> */}
-          {/* <li>Last Light: {sunData.last_light}</li> */}
-          {/* <li>Solar Noon: {sunData.solar_noon}</li> */}
-          <li>
-            <Label>Sunrise</Label>{" "}
+        <ul className="space-y-2 pt-2">
+          {/* {sunData &&
+            Object.entries(sunData).map(([key, value]) => {
+              console.log(key);
+              console.log(value);
+              return (
+                <InfoBox
+                  key={key}
+                  label={key}
+                  info={value as string}
+                  loading={loading}
+                />
+              );
+            })} */}
+          <li className="flex items-center">
+            <Label className="w-20">Sunrise</Label>
             {loading ? (
               <Skeleton className="h-6 w-[250px]" />
             ) : (
               <p>{sunData ? sunData.sunrise : "TBD"}</p>
             )}
           </li>
-          <li>
-            <Label>Sunset</Label>{" "}
+          <li className="flex items-center">
+            <Label className="w-20">Sunset</Label>
             {loading ? (
               <Skeleton className="h-6 w-[250px]" />
             ) : (
               <p>{sunData ? sunData.sunset : "TBD"}</p>
             )}
           </li>
-          {/* <li>Timezone: {sunData.timezone}</li> */}
-          {/* <li>UTC Offset: {sunData.utc_offset}</li> */}
         </ul>
       </div>
       {displayMap}

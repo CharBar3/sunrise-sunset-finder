@@ -5,7 +5,7 @@ import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
 
 import { Button } from "@/components/ui/button";
 import { Icon, LatLng, Map } from "leaflet";
-import { CircleHelp, LocateFixed } from "lucide-react";
+import { ArrowDown, CircleHelp, LocateFixed } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebounce } from "react-use";
 import { Input } from "./ui/input";
@@ -17,8 +17,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/tooltip";
+import { cn } from "@/lib/utils";
 
 const MapTime = () => {
+  const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<null | LatLng>(null);
 
   const [, cancel] = useDebounce(
@@ -88,13 +90,14 @@ const MapTime = () => {
 
     try {
       const req = await fetch(
-        `https://api.sunrisesunset.io/json?lat=${position.lat}&lng=${position.lng}`,
-        { method: "GET", mode: "no-cors" }
+        `https://api.sunrisesunset.io/json?lat=${position.lat}&lng=${position.lng}`
+        // { method: "GET", mode: "no-cors" }
       );
       const data = await req.json();
       console.log(data);
       setSunData(data.results);
     } catch (error) {
+      console.log(error);
       alert("Error getting sunrise/sunset data");
     } finally {
       setLoading(false);
@@ -144,7 +147,7 @@ const MapTime = () => {
       <div className="absolute z-[400] bg-background p-4 w-full">
         <div className="flex space-x-2">
           <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl flex">
-            Sunset/Sunrise Finder
+            Sunset / Sunrise Finder
           </h1>
           <TooltipProvider>
             <Tooltip delayDuration={0}>
@@ -173,38 +176,63 @@ const MapTime = () => {
             <Input defaultValue={position?.lng} />
           </div>
         </div>
+        <div className="relative">
+          <Button
+            className="absolute bottom-0 right-0"
+            size="icon"
+            onClick={() => setOpen((prev) => !prev)}
+          >
+            <ArrowDown
+              className={cn(
+                open ? "rotate-180" : "rotate-0",
+                "transition-all duration-500"
+              )}
+            />
+          </Button>
+          <ul
+            className={cn(
+              "space-y-2 pt-2 overflow-hidden transition-[height] duration-500",
+              open ? "h-[384px]" : "h-[60px]"
+            )}
+          >
+            <li className="flex items-center">
+              <Label className="w-24">Sunrise</Label>
+              {loading ? (
+                <Skeleton className="h-6 w-[250px]" />
+              ) : (
+                <p>{sunData ? sunData.sunrise : "TBD"}</p>
+              )}
+            </li>
+            <li className="flex items-center">
+              <Label className="w-24">Sunset</Label>
+              {loading ? (
+                <Skeleton className="h-6 w-[250px]" />
+              ) : (
+                <p>{sunData ? sunData.sunset : "TBD"}</p>
+              )}
+            </li>
+            {sunData &&
+              Object.entries(sunData).map(([key, value]) => {
+                if (["sunset", "sunrise"].includes(key)) {
+                  return;
+                }
 
-        <ul className="space-y-2 pt-2">
-          {/* {sunData &&
-            Object.entries(sunData).map(([key, value]) => {
-              console.log(key);
-              console.log(value);
-              return (
-                <InfoBox
-                  key={key}
-                  label={key}
-                  info={value as string}
-                  loading={loading}
-                />
-              );
-            })} */}
-          <li className="flex items-center">
-            <Label className="w-20">Sunrise</Label>
-            {loading ? (
-              <Skeleton className="h-6 w-[250px]" />
-            ) : (
-              <p>{sunData ? sunData.sunrise : "TBD"}</p>
-            )}
-          </li>
-          <li className="flex items-center">
-            <Label className="w-20">Sunset</Label>
-            {loading ? (
-              <Skeleton className="h-6 w-[250px]" />
-            ) : (
-              <p>{sunData ? sunData.sunset : "TBD"}</p>
-            )}
-          </li>
-        </ul>
+                const label =
+                  key.charAt(0).toUpperCase() + key.slice(1).replace("_", " ");
+
+                return (
+                  <li key={key} className="flex items-center">
+                    <Label className="w-24">{label}</Label>
+                    {loading ? (
+                      <Skeleton className="h-6 w-[250px]" />
+                    ) : (
+                      <p>{value as string}</p>
+                    )}
+                  </li>
+                );
+              })}
+          </ul>
+        </div>
       </div>
       {displayMap}
     </div>

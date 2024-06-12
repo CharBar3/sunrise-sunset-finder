@@ -204,21 +204,25 @@ const MapTime = () => {
             )}
           >
             {<li className="h-[24px]">{country}</li>}
-            <li className="flex items-center">
-              <Label className="w-24">Sunrise</Label>
-              {loading ? (
-                <Skeleton className="h-6 w-[100px]" />
-              ) : (
-                <p>{sunData ? sunData.sunrise : "TBD"}</p>
-              )}
-            </li>
-            <li className="flex items-center">
-              <Label className="w-24">Sunset</Label>
-              {loading ? (
-                <Skeleton className="h-6 w-[100px]" />
-              ) : (
-                <p>{sunData ? sunData.sunset : "TBD"}</p>
-              )}
+            <li>
+              <ul className="flex space-x-2">
+                <li className="flex items-center">
+                  <Label className="w-24">Sunrise</Label>
+                  {loading ? (
+                    <Skeleton className="h-6 w-[100px]" />
+                  ) : (
+                    <p>{sunData ? sunData.sunrise : "TBD"}</p>
+                  )}
+                </li>
+                <li className="flex items-center">
+                  <Label className="w-24">Sunset</Label>
+                  {loading ? (
+                    <Skeleton className="h-6 w-[100px]" />
+                  ) : (
+                    <p>{sunData ? sunData.sunset : "TBD"}</p>
+                  )}
+                </li>
+              </ul>
             </li>
             {sunData &&
               Object.entries(sunData).map(([key, value]) => {

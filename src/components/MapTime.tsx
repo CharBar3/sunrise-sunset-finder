@@ -1,12 +1,16 @@
 "use client";
 
-import "leaflet/dist/leaflet.css";
-import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
-
+const coordsLookup = require("coordinate_to_country");
+import { convertTimeToTargetTimezone } from "time-converter-by-timezone";
 import { Button } from "@/components/ui/button";
+import countryCodes from "@/country-code-lookup";
+import { cn } from "@/lib/utils";
+import FetchSunriseSunsetData from "@/server actions/fetchSunriseSunsetData";
 import { Icon, LatLng, Map } from "leaflet";
+import "leaflet/dist/leaflet.css";
 import { ArrowDown, CircleHelp, LocateFixed } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
 import { useDebounce } from "react-use";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -17,7 +21,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/tooltip";
-import { cn } from "@/lib/utils";
 
 const MapTime = () => {
   const [open, setOpen] = useState(false);
@@ -89,13 +92,9 @@ const MapTime = () => {
     }
 
     try {
-      const req = await fetch(
-        `https://api.sunrisesunset.io/json?lat=${position.lat}&lng=${position.lng}`
-        // { method: "GET", mode: "no-cors" }
-      );
-      const data = await req.json();
-      console.log(data);
-      setSunData(data.results);
+      const results = await FetchSunriseSunsetData(position.lat, position.lng);
+      setSunData(results);
+      setLoading(false);
     } catch (error) {
       console.log(error);
       alert("Error getting sunrise/sunset data");
@@ -105,6 +104,7 @@ const MapTime = () => {
   };
 
   const [map, setMap] = useState<Map | null>(null);
+  const [country, setCountry] = useState<string | null>(null);
 
   const displayMap = useMemo(() => {
     const customIcon = new Icon({
@@ -117,6 +117,12 @@ const MapTime = () => {
     function MarkCoords() {
       const map = useMapEvents({
         click(e) {
+          const countryCode = coordsLookup(e.latlng.lat, e.latlng.lng);
+          const country =
+            countryCodes[countryCode[0] as keyof typeof countryCodes];
+
+          setCountry(country);
+
           updatePostion(e.latlng);
         },
       });
@@ -181,6 +187,7 @@ const MapTime = () => {
             className="absolute bottom-0 right-0"
             size="icon"
             onClick={() => setOpen((prev) => !prev)}
+            disabled={loading || !sunData}
           >
             <ArrowDown
               className={cn(
@@ -189,16 +196,18 @@ const MapTime = () => {
               )}
             />
           </Button>
+
           <ul
             className={cn(
               "space-y-2 pt-2 overflow-hidden transition-[height] duration-500",
-              open ? "h-[384px]" : "h-[60px]"
+              open ? "h-[384px]" : "h-[90px]"
             )}
           >
+            {<li className="h-[24px]">{country}</li>}
             <li className="flex items-center">
               <Label className="w-24">Sunrise</Label>
               {loading ? (
-                <Skeleton className="h-6 w-[250px]" />
+                <Skeleton className="h-6 w-[100px]" />
               ) : (
                 <p>{sunData ? sunData.sunrise : "TBD"}</p>
               )}
@@ -206,7 +215,7 @@ const MapTime = () => {
             <li className="flex items-center">
               <Label className="w-24">Sunset</Label>
               {loading ? (
-                <Skeleton className="h-6 w-[250px]" />
+                <Skeleton className="h-6 w-[100px]" />
               ) : (
                 <p>{sunData ? sunData.sunset : "TBD"}</p>
               )}
@@ -224,7 +233,7 @@ const MapTime = () => {
                   <li key={key} className="flex items-center">
                     <Label className="w-24">{label}</Label>
                     {loading ? (
-                      <Skeleton className="h-6 w-[250px]" />
+                      <Skeleton className="h-6 w-[100px]" />
                     ) : (
                       <p>{value as string}</p>
                     )}

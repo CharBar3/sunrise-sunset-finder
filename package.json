@@ -14,6 +14,7 @@
     "@radix-ui/react-tooltip": "^1.0.7",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "coordinate_to_country": "^1.1.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.394.0",
     "next": "14.2.3",
@@ -22,7 +23,8 @@
     "react-leaflet": "^4.2.1",
     "react-use": "^17.5.0",
     "tailwind-merge": "^2.3.0",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "time-converter-by-timezone": "^2.3.2"
   },
   "devDependencies": {
     "@types/leaflet": "^1.9.12",

@@ -1,14 +1,13 @@
 "use client";
 
+import "leaflet/dist/leaflet.css";
 const coordsLookup = require("coordinate_to_country");
-import { convertTimeToTargetTimezone } from "time-converter-by-timezone";
 import { Button } from "@/components/ui/button";
 import countryCodes from "@/country-code-lookup";
 import { cn } from "@/lib/utils";
 import FetchSunriseSunsetData from "@/server actions/fetchSunriseSunsetData";
 import { Icon, LatLng, Map } from "leaflet";
-import "leaflet/dist/leaflet.css";
-import { ArrowDown, CircleHelp, LocateFixed } from "lucide-react";
+import { ArrowDown, CircleHelp, LoaderCircle, LocateFixed } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
 import { useDebounce } from "react-use";
@@ -21,9 +20,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/tooltip";
+import { Badge } from "./ui/badge";
 
 const MapTime = () => {
-  const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<null | LatLng>(null);
 
   const [, cancel] = useDebounce(
@@ -36,6 +35,7 @@ const MapTime = () => {
 
   const updatePostion = (latLng: LatLng) => {
     setLoading(true);
+    setSunData(false);
     setPosition(latLng);
   };
 
@@ -75,11 +75,13 @@ const MapTime = () => {
     }, [map, onMove]);
 
     return (
-      <div>
-        <Button size="icon" onClick={onClick}>
-          <LocateFixed />
-        </Button>
-      </div>
+      <Button
+        size="icon"
+        className="absolute right-4 bottom-4"
+        onClick={onClick}
+      >
+        <LocateFixed />
+      </Button>
     );
   }
 
@@ -125,6 +127,9 @@ const MapTime = () => {
 
           updatePostion(e.latlng);
         },
+        zoom(e) {
+          console.log(e);
+        },
       });
 
       return position === null ? null : (
@@ -137,7 +142,7 @@ const MapTime = () => {
         center={[39.8283, -98.5795]}
         zoom={4}
         ref={setMap}
-        className="absolute top-0 left-0 right-0 bottom-0 h-screen z-0"
+        className="h-full z-0"
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -149,105 +154,51 @@ const MapTime = () => {
   }, [position]);
 
   return (
-    <div>
-      <div className="absolute z-[400] bg-background p-4 w-full">
-        <div className="flex space-x-2">
-          <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl flex">
-            Sunset / Sunrise Finder
-          </h1>
-          <TooltipProvider>
-            <Tooltip delayDuration={0}>
-              <TooltipTrigger asChild className="cursor-default">
-                <Button variant="ghost" size="icon">
-                  <CircleHelp />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="leading-7">
-                  Click on the map to get sunrise and sunset information at the
-                  selected location
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          {map && <MapControls map={map} />}
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-center">
-            <Label className="w-8">Lat</Label>
-            <Input className="mt-1" defaultValue={position?.lat} />
+    <div className="h-screen grid grid-rows-[100px_1fr] sm:grid-rows-[70px_1fr]">
+      <div className=" bg-yellow p-2 flex justify-between">
+        <div>
+          <div className="flex space-x-2 mb-2">
+            <h1 className="font-bold ">🔎 Sunrise/Sunset Time Finder</h1>
+            {loading && <LoaderCircle className="animate-spin" />}
           </div>
-          <div className="flex items-center">
-            <Label className="w-8">Lng</Label>
-            <Input defaultValue={position?.lng} />
-          </div>
+          {sunData && (
+            <div className="flex gap-2 flex-wrap">
+              <Badge>Sunrise: {sunData.sunrise} </Badge>
+              <Badge>Sunset: {sunData.sunset} </Badge>
+              <Badge>Country: {country} </Badge>
+            </div>
+          )}
         </div>
-        <div className="relative">
-          <Button
-            className="absolute bottom-0 right-0"
-            size="icon"
-            onClick={() => setOpen((prev) => !prev)}
-            disabled={loading || !sunData}
-          >
-            <ArrowDown
-              className={cn(
-                open ? "rotate-180" : "rotate-0",
-                "transition-all duration-500"
-              )}
-            />
-          </Button>
-
-          <ul
-            className={cn(
-              "space-y-2 pt-2 overflow-hidden transition-[height] duration-500",
-              open ? "h-[384px]" : "h-[90px]"
-            )}
-          >
-            {<li className="h-[24px]">{country}</li>}
-            <li>
-              <ul className="flex space-x-2">
-                <li className="flex items-center">
-                  <Label className="w-24">Sunrise</Label>
-                  {loading ? (
-                    <Skeleton className="h-6 w-[100px]" />
-                  ) : (
-                    <p>{sunData ? sunData.sunrise : "TBD"}</p>
-                  )}
-                </li>
-                <li className="flex items-center">
-                  <Label className="w-24">Sunset</Label>
-                  {loading ? (
-                    <Skeleton className="h-6 w-[100px]" />
-                  ) : (
-                    <p>{sunData ? sunData.sunset : "TBD"}</p>
-                  )}
-                </li>
-              </ul>
-            </li>
-            {sunData &&
-              Object.entries(sunData).map(([key, value]) => {
-                if (["sunset", "sunrise"].includes(key)) {
-                  return;
-                }
-
-                const label =
-                  key.charAt(0).toUpperCase() + key.slice(1).replace("_", " ");
-
-                return (
-                  <li key={key} className="flex items-center">
-                    <Label className="w-24">{label}</Label>
-                    {loading ? (
-                      <Skeleton className="h-6 w-[100px]" />
-                    ) : (
-                      <p>{value as string}</p>
-                    )}
-                  </li>
-                );
-              })}
-          </ul>
-        </div>
+        <TooltipProvider>
+          <Tooltip delayDuration={0}>
+            <TooltipTrigger asChild className="cursor-default">
+              <Button variant="ghost" size="icon">
+                <CircleHelp />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="leading-7">
+                Click on the map to get sunrise and sunset information at the
+                selected location
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        {/* <div className="absolute z-10 top-40 left-2 flex flex-col space-y-1">
+          {sunData &&
+            Object.entries(sunData).map(([key, value]) => {
+              const label =
+                key.charAt(0).toUpperCase() + key.slice(1).replace("_", " ");
+              return (
+                <Badge>
+                  {label}: {value as string}
+                </Badge>
+              );
+            })}
+        </div> */}
       </div>
-      {displayMap}
+      <div>{displayMap}</div>
+      {map && <MapControls map={map} />}
     </div>
   );
 };

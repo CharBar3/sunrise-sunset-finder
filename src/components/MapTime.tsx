@@ -52,7 +52,6 @@ import {
 const MapTime = () => {
   const [country, setCountry] = useState<string | null>(null);
   const [position, setPosition] = useState<null | LatLng>(null);
-  const [open, setOpen] = useState(false);
 
   const [, cancel] = useDebounce(
     () => {
@@ -61,6 +60,7 @@ const MapTime = () => {
       }
       setSunData(null);
       setCountry(MapUtils.getCountryNameFromLatLng(position.lat, position.lng));
+      console.log(country);
       getSunsetSunrise();
     },
     2000,
@@ -190,6 +190,19 @@ const MapTime = () => {
         <div>
           <div className="flex space-x-2 mb-2">
             <h1 className="font-bold ">🔎 Sunrise/Sunset Time Finder</h1>
+            <div className="mx-4 flex items-center justify-center aspect-square">
+              <Popover>
+                <PopoverTrigger>
+                  <CircleHelp />
+                </PopoverTrigger>
+                <PopoverContent>
+                  <p className="leading-7">
+                    Click on the map to get sunrise and sunset information at
+                    the selected location
+                  </p>
+                </PopoverContent>
+              </Popover>
+            </div>
             {loading && <LoaderCircle className="animate-spin" />}
           </div>
           <div className="relative flex px-2 items-center">
@@ -200,7 +213,9 @@ const MapTime = () => {
               <Badge className="h-[22px]">
                 Sunset: {sunData && sunData.sunset}{" "}
               </Badge>
-              <Badge className="h-[22px]">Country: {country} </Badge>
+              {country && (
+                <Badge className="h-[22px]">Country: {country} </Badge>
+              )}
             </div>
             <div className="h-full flex items-center">
               <Dialog>
@@ -250,19 +265,6 @@ const MapTime = () => {
               )}
             ></div>
           </div>
-        </div>
-        <div className="mx-4 flex items-center justify-center aspect-square">
-          <Popover>
-            <PopoverTrigger>
-              <CircleHelp className="h-8 w-8" />
-            </PopoverTrigger>
-            <PopoverContent>
-              <p className="leading-7">
-                Click on the map to get sunrise and sunset information at the
-                selected location
-              </p>
-            </PopoverContent>
-          </Popover>
         </div>
       </div>
 
